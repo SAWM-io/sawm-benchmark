@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="SAWM — carte de notation : benchmark système et raisonnement de l'agent, mesures réelles.">
+<title>SAWM — Carte de notation (benchmark)</title>
+<style>
+  :root{
+    --bg:#0d1014; --panel:#141922; --panel-2:#1a2029; --line:#28303c;
+    --ink:#e8ecf2; --ink-2:#aab4c2; --ink-3:#6f7c8c;
+    --accent:#4c9aff; --good:#38c172; --ok:#8bc34a; --warn:#e0a13a; --crit:#e5484d;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:light){
+    :root{ --bg:#f4f6f9; --panel:#ffffff; --panel-2:#f0f3f7; --line:#dce2ea;
+      --ink:#161b22; --ink-2:#4a5666; --ink-3:#8592a2; --accent:#2f74e0; }
+  }
+  :root[data-theme="dark"]{ --bg:#0d1014; --panel:#141922; --panel-2:#1a2029; --line:#28303c;
+    --ink:#e8ecf2; --ink-2:#aab4c2; --ink-3:#6f7c8c; --accent:#4c9aff; }
+  :root[data-theme="light"]{ --bg:#f4f6f9; --panel:#ffffff; --panel-2:#f0f3f7; --line:#dce2ea;
+    --ink:#161b22; --ink-2:#4a5666; --ink-3:#8592a2; --accent:#2f74e0; }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;
+    margin:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:40px 22px 72px}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;
+    font-size:11px;color:var(--ink-3)}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:26px}
+  h1{font-size:27px;font-weight:650;margin:6px 0 4px;letter-spacing:-.01em;text-wrap:balance}
+  .sub{color:var(--ink-2);font-size:14px;max-width:62ch}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 20px;margin-top:16px;font-size:12px;color:var(--ink-3);
+    font-family:var(--mono)}
+  .meta b{color:var(--ink-2);font-weight:500}
+
+  .hero{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:30px}
+  .big{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+    display:flex;align-items:center;gap:20px}
+  .ring{width:96px;height:96px;flex:0 0 96px;border-radius:50%;display:grid;place-content:center;position:relative}
+  .ring .v{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1}
+  .ring .u{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin-top:4px;text-align:center}
+  .big .t h2{margin:0 0 5px;font-size:15px;font-weight:600}
+  .big .t p{margin:0;color:var(--ink-2);font-size:12.5px;max-width:34ch}
+  @media(max-width:640px){ .hero{grid-template-columns:1fr} }
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:13px;margin-bottom:30px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .card .k{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .card .name{font-size:12.5px;color:var(--ink-2);font-weight:500}
+  .card .score{font-family:var(--mono);font-size:21px;font-weight:650}
+  .card .pct{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-left:auto}
+  .meter{height:5px;border-radius:3px;background:var(--panel-2);margin-top:11px;overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:3px}
+  .card .note{font-size:11px;color:var(--ink-3);margin-top:9px;line-height:1.4}
+
+  section{margin-bottom:32px}
+  h3{font-size:13px;font-weight:600;letter-spacing:.02em;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+  h3::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--accent)}
+  .h3sub{font-size:12px;color:var(--ink-3);margin:0 0 13px 16px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+
+  .tblwrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-3);font-weight:500}
+  tr:last-child td{border-bottom:none}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  td.samp{white-space:normal;color:var(--ink-2);font-size:12.5px;max-width:360px}
+  .lang{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .sc{font-family:var(--mono);font-weight:650;font-variant-numeric:tabular-nums}
+  .tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--ink-3)}
+  .tag.obj{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+  .tag.jur{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+
+  .chk{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--good)}
+  .chk::before{content:"✓ "}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .grid2 .cell{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    padding:11px 16px;border-bottom:1px solid var(--line);font-size:13px}
+  .grid2 .cell:nth-last-child(-n+2){border-bottom:none}
+  .cell .lbl{color:var(--ink-2)}
+  @media(max-width:560px){ .grid2{grid-template-columns:1fr} .grid2 .cell:nth-last-child(2){border-bottom:1px solid var(--line)} }
+
+  .scope{background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--warn);
+    border-radius:8px;padding:14px 17px;font-size:12.5px;color:var(--ink-2);line-height:1.6}
+  .scope b{color:var(--ink)}
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Benchmark · agent SAWM</div>
+    <h1>SAWM — Carte de notation</h1>
+    <p class="sub">Mesures réelles, exécutées sur l'agent en production. Deux volets : l'intégrité du <b>système</b> (langue, routage, sécurité, latence) et la <b>qualité de raisonnement</b> sur 14 domaines. Chaque score est reproductible ; les vérifications objectives priment, un jury neutre note le reste.</p>
+    <div class="meta">
+      <span><b>Version</b> 2026-07</span>
+      <span><b>Moteur</b> cortex cognitif propriétaire</span>
+      <span><b>Vérifications</b> 38 système + 14 raisonnement</span>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="big">
+      <div class="ring" style="background:conic-gradient(var(--good) 100%,var(--panel-2) 0)">
+        <div style="position:absolute;inset:5px;background:var(--panel);border-radius:50%"></div>
+        <div style="position:relative;text-align:center"><div class="v" style="color:var(--good)">A</div><div class="u">Système</div></div>
+      </div>
+      <div class="t"><h2>38 / 38 — sans faute</h2><p>Langue, routage d'outils et verrous de sécurité (P0–P3) : tout tient. Premier token en ~0,5 s.</p></div>
+    </div>
+    <div class="big">
+      <div class="ring" style="background:conic-gradient(var(--ok) 89%,var(--panel-2) 0)">
+        <div style="position:absolute;inset:5px;background:var(--panel);border-radius:50%"></div>
+        <div style="position:relative;text-align:center"><div class="v" style="color:var(--ok)">89</div><div class="u">Raisonnement</div></div>
+      </div>
+      <div class="t"><h2>89 / 100 — solide</h2><p>Domaines objectifs tous à 100. Sur le jury, le fond est jugé « rigoureux/exact » ; déductions dues à une troncature de sortie.</p></div>
+    </div>
+  </div>
+
+  <section>
+    <h3>Volet système</h3>
+    <div class="cards">
+      <div class="card"><div class="k"><span class="name">Langue (miroir)</span><span class="pct">100%</span></div>
+        <div class="score" style="color:var(--good)">12<span style="color:var(--ink-3);font-size:13px">/12</span></div>
+        <div class="meter"><i style="width:100%;background:var(--good)"></i></div>
+        <div class="note">12 langues, message clair → réponse dans la bonne langue, sans indice d'interface.</div></div>
+      <div class="card"><div class="k"><span class="name">Routage d'outils</span><span class="pct">100%</span></div>
+        <div class="score" style="color:var(--good)">5<span style="color:var(--ink-3);font-size:13px">/5</span></div>
+        <div class="meter"><i style="width:100%;background:var(--good)"></i></div>
+        <div class="note">La bonne famille d'outils est présentée selon l'intention.</div></div>
+      <div class="card"><div class="k"><span class="name">Sécurité P0–P3</span><span class="pct">100%</span></div>
+        <div class="score" style="color:var(--good)">9<span style="color:var(--ink-3);font-size:13px">/9</span></div>
+        <div class="meter"><i style="width:100%;background:var(--good)"></i></div>
+        <div class="note">SSRF, IDOR, usurpation, rate-limit, IP fiable, révocation.</div></div>
+      <div class="card"><div class="k"><span class="name">Latence 1er token</span><span class="pct">p50</span></div>
+        <div class="score">549<span style="color:var(--ink-3);font-size:13px"> ms</span></div>
+        <div class="meter"><i style="width:82%;background:var(--accent)"></i></div>
+        <div class="note">Accusé de réception. Max 767 ms sur 12 appels.</div></div>
+      <div class="card"><div class="k"><span class="name">Fiabilité</span><span class="pct">3/3</span></div>
+        <div class="score" style="color:var(--good)">3<span style="color:var(--ink-3);font-size:13px">/3</span></div>
+        <div class="meter"><i style="width:100%;background:var(--good)"></i></div>
+        <div class="note">Pool de clés LLM, worker de fond, egress anonyme.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Volet raisonnement — 14 domaines · moyenne 89</h3>
+    <p class="h3sub">SAWM résout la tâche via son exécuteur réel. <span class="tag obj">objectif</span> = solution connue, vérif automatique. <span class="tag jur">jury</span> = note 0–100 par examinateur neutre.</p>
+    <div class="panel tblwrap">
+      <table>
+        <thead><tr><th>Domaine</th><th>Type</th><th>Note</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td class="lang">Mathématiques — zéros de 100!</td><td><span class="tag obj">objectif</span></td><td class="sc" style="color:var(--good)">100</td><td class="samp">24, décomposition en facteurs 5 correcte</td></tr>
+          <tr><td class="lang">Finance / gestion — VAN</td><td><span class="tag obj">objectif</span></td><td class="sc" style="color:var(--good)">100</td><td class="samp">≈ 308 € actualisés, calcul exact</td></tr>
+          <tr><td class="lang">Analyse de sentiment</td><td><span class="tag obj">objectif</span></td><td class="sc" style="color:var(--good)">100</td><td class="samp">« négatif » — indices défaut/SAV identifiés</td></tr>
+          <tr><td class="lang">Enquête / déduction</td><td><span class="tag obj">objectif</span></td><td class="sc" style="color:var(--good)">100</td><td class="samp">coupable trouvé par élimination des alibis (Nina)</td></tr>
+          <tr><td class="lang">Logique / contraintes</td><td><span class="tag obj">objectif</span></td><td class="sc" style="color:var(--good)">100</td><td class="samp">ordre A → B → D → C exact</td></tr>
+          <tr><td class="lang">Mémoire — rappel de données passées</td><td><span class="tag obj">objectif</span></td><td class="sc" style="color:var(--good)">100</td><td class="samp">fait injecté retrouvé (rotation 72 h + quorum)</td></tr>
+          <tr><td class="lang">Créativité — poème sous contrainte</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--ok)">95</td><td class="samp">contraintes de vocabulaire respectées, 4 vers</td></tr>
+          <tr><td class="lang">Mathématiques avancées — Bâle</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--ok)">85</td><td class="samp">démonstration rigoureuse, valeur π²/6</td></tr>
+          <tr><td class="lang">Biochimie — ATP</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--ok)">85</td><td class="samp">scientifiquement rigoureux et précis</td></tr>
+          <tr><td class="lang">Proposition — leviers business</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--ok)">85</td><td class="samp">méthodo excellente (impact/effort)</td></tr>
+          <tr><td class="lang">Défense analytique — protection en couches</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--ok)">85</td><td class="samp">techniquement rigoureux, pertinent</td></tr>
+          <tr><td class="lang">Histoire — chute de Rome</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--warn)">75</td><td class="samp">factuel, bien structuré</td></tr>
+          <tr><td class="lang">Réflexion — éthique d'un agent</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--warn)">65</td><td class="samp">structuré et nuancé (fin tronquée)</td></tr>
+          <tr><td class="lang">Mission — plan de lancement 5 étapes</td><td><span class="tag jur">jury</span></td><td class="sc" style="color:var(--warn)">65</td><td class="samp">méthodologiquement solide (fin tronquée)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h3>Adaptation de langue — 12/12</h3>
+    <div class="panel tblwrap">
+      <table>
+        <thead><tr><th>Langue</th><th>OK</th><th>ms</th><th>Réponse de SAWM</th></tr></thead>
+        <tbody>
+          <tr><td class="lang">en</td><td><span class="chk"></span></td><td class="num">744</td><td class="samp">Budget wireless headphones, on it right now.</td></tr>
+          <tr><td class="lang">fr</td><td><span class="chk"></span></td><td class="num">767</td><td class="samp">Casque sans fil, je m'en occupe tout de suite.</td></tr>
+          <tr><td class="lang">es</td><td><span class="chk"></span></td><td class="num">594</td><td class="samp">Vuelo a Madrid, me pongo con ello ahora mismo.</td></tr>
+          <tr><td class="lang">de</td><td><span class="chk"></span></td><td class="num">514</td><td class="samp">Günstige Laufschuhe, ich kümmere mich sofort darum.</td></tr>
+          <tr><td class="lang">it</td><td><span class="chk"></span></td><td class="num">549</td><td class="samp">Volo Roma: ci penso subito.</td></tr>
+          <tr><td class="lang">pt</td><td><span class="chk"></span></td><td class="num">734</td><td class="samp">Hotel barato Lisboa, trato disso agora mesmo.</td></tr>
+          <tr><td class="lang">ar</td><td><span class="chk"></span></td><td class="num">568</td><td class="samp" dir="rtl">أرخص سماعات، أبحث لك عنها فوراً.</td></tr>
+          <tr><td class="lang">ru</td><td><span class="chk"></span></td><td class="num">511</td><td class="samp">Дешёвый рейс Москва, ищу прямо сейчас.</td></tr>
+          <tr><td class="lang">zh</td><td><span class="chk"></span></td><td class="num">519</td><td class="samp">最便宜无线耳机，马上帮你搞定。</td></tr>
+          <tr><td class="lang">ja</td><td><span class="chk"></span></td><td class="num">488</td><td class="samp">最安ワイヤレスイヤホンですね、すぐにお調べします。</td></tr>
+          <tr><td class="lang">tr</td><td><span class="chk"></span></td><td class="num">466</td><td class="samp">Ucuz kablosuz kulaklık, hemen bakıyorum.</td></tr>
+          <tr><td class="lang">nl</td><td><span class="chk"></span></td><td class="num">544</td><td class="samp">Goedkoopste draadloze koptelefoon, ik duik er meteen in.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h3>Verrous de sécurité — 9/9</h3>
+    <div class="panel">
+      <div class="grid2">
+        <div class="cell"><span class="lbl">SSRF — bloque 169.254.169.254 (métadonnées cloud)</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">SSRF — bloque 127.0.0.1 (interne)</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">SSRF — autorise un hôte public légitime</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">self-code — refuse un agent non-owner</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">Escrow IDOR — acheteur autorisé</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">Escrow IDOR — tiers refusé</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">Rate-limit — appliqué après le seuil</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">IP fiable — CF-Connecting-IP, pas le XFF spoofable</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl">Révocation — le jeton porte sa version</span><span class="chk"></span></div>
+        <div class="cell"><span class="lbl" style="color:var(--ink-3)">— fin de la liste —</span><span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h3>Méthode & limites</h3>
+    <div class="scope">
+      <b>Ce qui est mesuré :</b> comportement objectif du système (langue, routage, sécurité, latence, garde-fous) et qualité de raisonnement sur 14 domaines — maths, finance, sentiment, enquête, logique, mémoire, créativité, histoire, biochimie, proposition, mission, réflexion, défense analytique.<br><br>
+      <b>Vérité de terrain :</b> les 6 domaines à réponse connue sont notés automatiquement (100 % chacun). Les 8 domaines ouverts sont notés par un examinateur neutre indépendant de la réponse.<br><br>
+      <b>Limites honnêtes :</b> (1) sur les domaines à jury, l'essentiel des points perdus vient d'une <b>troncature de la sortie</b> du sous-exécuteur d'évaluation — le fond est jugé « rigoureux / exact » ; le chat réel, lui, rend la réponse complète. (2) Un jury LLM reste faillible ; les scores objectifs priment. (3) On ne prétend <b>jamais</b> « résoudre » un problème mathématique ouvert — seuls des problèmes durs mais résolubles sont testés. (4) La « défense » est strictement <b>analytique et défensive</b> (protection civile), jamais opérationnelle offensive.
+    </div>
+  </section>
+
+  <footer>SAWM · benchmark exécuté sur l'agent en production · 52 vérifications · reproductible</footer>
+</div>
+</body>
+</html>
